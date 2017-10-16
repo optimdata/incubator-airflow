@@ -47,6 +47,7 @@
                   <span id="statuses_info" class="glyphicon glyphicon-info-sign" aria-hidden="true" title="Status of all previous DAG runs."></span>
                   <img id="loading" width="15" src="{{ url_for("static", filename="loading.gif") }}">
                 </th>
+                <th>Version</th>
                 <th class="text-center">Links</th>
             </tr>
         </thead>
@@ -112,7 +113,9 @@
                 <td style="padding:0px; width:120px; height:10px;">
                     <svg height="10" width="10" id='dag-run-{{ dag.safe_dag_id }}' style="display: block;"></svg>
                 </td>
-
+                <td>
+                  {{ tag }}
+                </td>
                 <!-- Column 9: Links -->
                 <td class="text-center" style="display:flex; flex-direction:row; justify-content:space-around;">
                 {% if dag %}

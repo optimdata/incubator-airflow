@@ -46,6 +46,8 @@ import markdown
 import nvd3
 import ast
 
+from git import Repo
+
 from wtforms import (
     Form, SelectField, TextAreaField, PasswordField, StringField, validators)
 
@@ -83,6 +85,13 @@ dagbag = models.DagBag(settings.DAGS_FOLDER)
 login_required = airflow.login.login_required
 current_user = airflow.login.current_user
 logout_user = airflow.login.logout_user
+
+repo = Repo(os.path.dirname(conf.get('core', 'plugins_folder')))
+tags = {tag.commit: tag for tag in repo.tags}
+tag = None
+for commit in reversed(list(repo.iter_commits(repo.active_branch))):
+    if commit in tags:
+        tag = tags[commit]
 
 FILTER_BY_OWNER = False
 
@@ -1859,7 +1868,9 @@ class HomeView(AdminIndexView):
             webserver_dags=webserver_dags,
             orm_dags=orm_dags,
             hide_paused=hide_paused,
-            all_dag_ids=all_dag_ids)
+            all_dag_ids=all_dag_ids,
+            tag=tag)
+
 
 
 class QueryView(wwwutils.DataProfilingMixin, BaseView):
