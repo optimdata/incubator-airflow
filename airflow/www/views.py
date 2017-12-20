@@ -92,6 +92,7 @@ tag = None
 for commit in reversed(list(repo.iter_commits(repo.active_branch))):
     if commit in tags:
         tag = tags[commit]
+repo.close()
 
 FILTER_BY_OWNER = False
 
