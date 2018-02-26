@@ -568,7 +568,7 @@ class Connection(Base):
         self.host = hostname
         self.schema = temp_uri.path[1:]
         self.login = temp_uri.username
-        self.password = temp_uri.password
+        self.password = temp_uri.password.replace('%23', '#') if temp_uri.password else temp_uri.password
         self.port = temp_uri.port
 
     def get_password(self):
