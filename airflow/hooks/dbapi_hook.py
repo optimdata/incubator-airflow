@@ -88,7 +88,11 @@ class DbApiHook(BaseHook):
             sql = sql.encode('utf-8')
         import pandas.io.sql as psql
         conn = self.get_conn()
-        df = psql.read_sql(sql, con=conn, params=parameters)
+        try:
+            df = psql.read_sql(sql, con=conn, params=parameters)
+        except Exception as e:
+            conn.close()
+            raise e
         conn.close()
         return df
 
@@ -105,13 +109,17 @@ class DbApiHook(BaseHook):
         if sys.version_info[0] < 3:
             sql = sql.encode('utf-8')
         conn = self.get_conn()
-        cur = self.get_cursor()
-        if parameters is not None:
-            cur.execute(sql, parameters)
-        else:
-            cur.execute(sql)
-        rows = cur.fetchall()
-        cur.close()
+        try:
+            cur = self.get_cursor()
+            if parameters is not None:
+                cur.execute(sql, parameters)
+            else:
+                cur.execute(sql)
+            rows = cur.fetchall()
+            cur.close()
+        except Exception as e:
+            conn.close()
+            raise e
         conn.close()
         return rows
 
@@ -128,13 +136,17 @@ class DbApiHook(BaseHook):
         if sys.version_info[0] < 3:
             sql = sql.encode('utf-8')
         conn = self.get_conn()
-        cur = conn.cursor()
-        if parameters is not None:
-            cur.execute(sql, parameters)
-        else:
-            cur.execute(sql)
-        rows = cur.fetchone()
-        cur.close()
+        try:
+            cur = conn.cursor()
+            if parameters is not None:
+                cur.execute(sql, parameters)
+            else:
+                cur.execute(sql)
+            rows = cur.fetchone()
+            cur.close()
+        except Exception as e:
+            conn.close()
+            raise e
         conn.close()
         return rows
 
@@ -160,17 +172,21 @@ class DbApiHook(BaseHook):
         if self.supports_autocommit:
             self.set_autocommit(conn, autocommit)
 
-        cur = conn.cursor()
-        for s in sql:
-            if sys.version_info[0] < 3:
-                s = s.encode('utf-8')
-            logging.info(s)
-            if parameters is not None:
-                cur.execute(s, parameters)
-            else:
-                cur.execute(s)
-        cur.close()
-        conn.commit()
+        try:
+            cur = conn.cursor()
+            for s in sql:
+                if sys.version_info[0] < 3:
+                    s = s.encode('utf-8')
+                logging.info(s)
+                if parameters is not None:
+                    cur.execute(s, parameters)
+                else:
+                    cur.execute(s)
+            cur.close()
+            conn.commit()
+        except Exception as e:
+            conn.close()
+            raise e
         conn.close()
 
     def set_autocommit(self, conn, autocommit):
@@ -206,25 +222,29 @@ class DbApiHook(BaseHook):
         if self.supports_autocommit:
             self.set_autocommit(conn, False)
         conn.commit()
-        cur = conn.cursor()
-        i = 0
-        for row in rows:
-            i += 1
-            l = []
-            for cell in row:
-                l.append(self._serialize_cell(cell, conn))
-            values = tuple(l)
-            sql = "INSERT INTO {0} {1} VALUES ({2});".format(
-                table,
-                target_fields,
-                ",".join(values))
-            cur.execute(sql)
-            if commit_every and i % commit_every == 0:
-                conn.commit()
-                logging.info(
-                    "Loaded {i} into {table} rows so far".format(**locals()))
-        conn.commit()
-        cur.close()
+        try:
+            cur = conn.cursor()
+            i = 0
+            for row in rows:
+                i += 1
+                l = []
+                for cell in row:
+                    l.append(self._serialize_cell(cell, conn))
+                values = tuple(l)
+                sql = "INSERT INTO {0} {1} VALUES ({2});".format(
+                    table,
+                    target_fields,
+                    ",".join(values))
+                cur.execute(sql)
+                if commit_every and i % commit_every == 0:
+                    conn.commit()
+                    logging.info(
+                        "Loaded {i} into {table} rows so far".format(**locals()))
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            conn.close()
+            raise e
         conn.close()
         logging.info(
             "Done loading. Loaded a total of {i} rows".format(**locals()))
